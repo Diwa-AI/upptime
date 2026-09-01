@@ -19,8 +19,6 @@ status-website:
   links:
     - rel: stylesheet
       href: https://diwa-ai.github.io/upptime/diwa-theme.css
-  scripts:
-    - src: https://diwa-ai.github.io/upptime/diwa-status.js
   navbar:
     - title: diwa.ai
       href: https://www.diwa.ai

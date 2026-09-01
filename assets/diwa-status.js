@@ -115,7 +115,14 @@
     var hero = document.querySelector(
       "article.up:not(.link):not(.graph)"
     );
-    if (!hero || hero.querySelector(".diwa-hero-meta")) return;
+    if (!hero) return;
+    if (
+      hero.querySelector(".diwa-hero-meta") ||
+      (hero.nextElementSibling &&
+        hero.nextElementSibling.classList.contains("diwa-hero-meta"))
+    ) {
+      return;
+    }
 
     var meta = document.createElement("div");
     meta.className = "diwa-hero-meta";
@@ -220,12 +227,25 @@
   }
 
   function start() {
+    var root =
+      document.getElementById("sapper") || document.body;
+    if (!root) {
+      document.addEventListener("DOMContentLoaded", start);
+      return;
+    }
+
     enhance();
-    var root = document.querySelector("main") || document.body;
     var observer = new MutationObserver(function () {
       enhance();
     });
     observer.observe(root, { childList: true, subtree: true });
+
+    var tries = 0;
+    var timer = setInterval(function () {
+      enhance();
+      tries += 1;
+      if (tries >= 20) clearInterval(timer);
+    }, 500);
   }
 
   if (document.readyState === "loading") {
