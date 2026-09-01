@@ -14,11 +14,11 @@ status-website:
   #  cname: status.diwa.ai
   baseUrl: /upptime
   name: Status
-  logoUrl: /upptime/diwa-logo.png
-  themeUrl: /upptime/diwa-theme.css
+  logoUrl: https://diwa-ai.github.io/upptime/diwa-logo.png
+  themeUrl: https://diwa-ai.github.io/upptime/diwa-theme.css
   links:
     - rel: stylesheet
-      href: /upptime/diwa-theme.css
+      href: https://diwa-ai.github.io/upptime/diwa-theme.css
   navbar:
     - title: diwa.ai
       href: https://www.diwa.ai
