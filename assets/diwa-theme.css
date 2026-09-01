@@ -21,7 +21,7 @@
   --submit-button-border-color: #00a3c4;
   --submit-button-background-color: #00a3c4;
   --submit-button-color: #050505;
-  --graph-opacity: 0.7;
+  --graph-opacity: 0;
   --graph-filter: grayscale(0.15) contrast(1.15);
   --muted-text-color: #8a8a8a;
   --brand-cyan: #00a3c4;
@@ -71,8 +71,12 @@ body nav .logo img {
   max-width: 9.5rem;
   object-fit: contain;
   object-position: left center;
-  margin-right: 0.75rem;
+  margin-right: 0;
   border-radius: 0;
+}
+
+body nav .logo > div {
+  display: none;
 }
 
 body nav ul a {
@@ -120,8 +124,8 @@ body article {
   padding: 1.15rem 1.25rem;
 }
 
-body article.up:not(.link) {
-  font-size: 1.55rem;
+body article.up:not(.link):not(.graph) {
+  font-size: 1.7rem;
   font-weight: 600;
   letter-spacing: -0.03em;
   line-height: 1.3;
@@ -130,7 +134,42 @@ body article.up:not(.link) {
   border: 1px solid rgba(34, 197, 94, 0.28);
   border-left: 1px solid rgba(34, 197, 94, 0.28);
   color: var(--body-text-color);
-  margin-bottom: 0.25rem;
+  margin-bottom: 0;
+}
+
+body article.up:not(.link):not(.graph)::before {
+  content: "";
+  display: inline-block;
+  width: 0.72em;
+  height: 0.72em;
+  margin-right: 0.55rem;
+  vertical-align: -0.05em;
+  background: var(--tag-up-background-color);
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 2px rgba(5, 46, 22, 0.25);
+}
+
+.diwa-hero-meta {
+  margin: 0.85rem 0 1.5rem;
+}
+
+.diwa-hero-meta .diwa-checked,
+.diwa-hero-meta .diwa-overall {
+  margin: 0;
+  color: var(--muted-text-color);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.diwa-hero-meta .diwa-overall {
+  margin-top: 0.2rem;
+}
+
+.diwa-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.85rem;
 }
 
 body article + h3 {
@@ -152,46 +191,20 @@ body h3 {
   letter-spacing: 0.04em;
 }
 
-/* Duration pills */
+/* Duration pills — mockup uses a 90-day bar instead */
 
 body .f.changed {
-  align-items: center;
-  margin: 1.75rem 0 0.85rem;
+  display: none !important;
 }
 
-body .f.changed h2 {
-  margin: 0;
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--muted-text-color);
-}
-
-body .r label {
-  margin-left: 0.35rem;
-  font-size: 0.78rem;
-  font-weight: 500;
-  padding: 0.28rem 0.7rem;
-  border-radius: 999px;
-  border: 1px solid var(--card-border-color);
-  color: var(--muted-text-color);
-  cursor: pointer;
-}
-
-body .r input:checked + label {
-  font-weight: 600;
-  color: #050505;
-  background: var(--brand-cyan);
-  border-color: var(--brand-cyan);
-}
-
-/* Service cards */
+/* Service rows */
 
 body .live-status article {
-  padding: 1.15rem 1.25rem 3.6rem;
+  padding: 1.15rem 1.25rem 1.05rem;
   overflow: hidden;
+  border: 1px solid var(--card-border-color);
   border-left-width: 1px;
+  background: var(--card-background-color);
 }
 
 body .live-status article.up,
@@ -208,7 +221,7 @@ body .live-status article h4 {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  margin: 0 0 0.2rem;
+  margin: 0 0 0.25rem;
   font-size: 1.05rem;
   font-weight: 650;
 }
@@ -247,20 +260,49 @@ body .live-status article.degraded h4::after {
 }
 
 body .live-status article > div {
+  display: none;
+}
+
+.diwa-service-meta {
+  margin: 0;
   font-size: 0.86rem;
   color: var(--muted-text-color);
 }
 
-body .live-status article > div .data {
-  color: var(--body-text-color);
-  font-weight: 500;
-  padding: 0;
+body article.graph {
+  background-image: none !important;
 }
 
-body article.graph {
-  background-position: left bottom !important;
-  background-size: 100% 52px !important;
-  background-repeat: no-repeat !important;
+.uptime-bar-wrap {
+  margin-top: 0.9rem;
+}
+
+.uptime-bar {
+  display: flex;
+  gap: 2px;
+  height: 28px;
+}
+
+.uptime-tick {
+  flex: 1;
+  min-width: 0;
+  border-radius: 1px;
+}
+
+.uptime-tick.up {
+  background: #22c55e;
+}
+
+.uptime-tick.down {
+  background: #ef4444;
+}
+
+.uptime-bar-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.35rem;
+  font-size: 0.72rem;
+  color: var(--muted-text-color);
 }
 
 /* Incidents */
@@ -328,6 +370,37 @@ body .tag.open {
   color: #fff;
 }
 
+.diwa-timeline {
+  margin-top: 0.95rem;
+  padding: 0.15rem 0 0.1rem 0.95rem;
+  border-left: 2px solid var(--card-border-color);
+}
+
+.diwa-timeline-item {
+  margin: 0 0 0.85rem;
+}
+
+.diwa-timeline-item:last-child {
+  margin-bottom: 0;
+}
+
+.diwa-timeline-when {
+  margin: 0 0 0.2rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--muted-text-color);
+}
+
+.diwa-timeline-body {
+  font-size: 0.86rem;
+  color: #cfcfcf;
+  line-height: 1.45;
+}
+
+.diwa-timeline-body code {
+  font-size: 0.82em;
+}
+
 /* History / incident detail */
 
 body dl dt {
@@ -349,8 +422,7 @@ body footer a {
 }
 
 .rss-subscribe {
-  text-align: center;
-  margin: 0.35rem 0 2.5rem;
+  margin: 0;
 }
 
 .rss-subscribe a {
@@ -372,16 +444,25 @@ body footer a {
   color: var(--brand-cyan);
 }
 
+body > .rss-subscribe {
+  display: none;
+}
+
 @media (max-width: 640px) {
   body nav .logo img {
     max-width: 6.5rem;
   }
 
-  body article.up:not(.link) {
+  body article.up:not(.link):not(.graph) {
     font-size: 1.25rem;
   }
 
   body .live-status article h4 {
     flex-wrap: wrap;
+  }
+
+  .uptime-bar {
+    height: 22px;
+    gap: 1px;
   }
 }

@@ -19,6 +19,8 @@ status-website:
   links:
     - rel: stylesheet
       href: https://diwa-ai.github.io/upptime/diwa-theme.css
+  scripts:
+    - src: https://diwa-ai.github.io/upptime/diwa-status.js
   navbar:
     - title: diwa.ai
       href: https://www.diwa.ai
@@ -29,6 +31,7 @@ status-website:
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://diwa-ai.github.io/upptime/diwa-status.js" defer></script>
   metaTags:
     - name: theme-color
       content: "#050505"
@@ -36,12 +39,14 @@ status-website:
     <p class="rss-subscribe">
       <a href="https://github.com/diwa-ai/upptime/issues.atom">Subscribe via RSS</a>
     </p>
-  i18n:
-    allSystemsOperational: All Systems Operational
-    up: Operational
-    pastIncidents: Past incidents
-    overallUptime: "$UPTIME uptime"
-    footer: "← [Back to diwa.ai](https://www.diwa.ai)"
+
+# Root-level i18n is what Upptime merges into the status page
+i18n:
+  allSystemsOperational: All Systems Operational
+  up: Operational
+  pastIncidents: Past incidents
+  overallUptime: "$UPTIME uptime"
+  footer: "← [Back to diwa.ai](https://www.diwa.ai)"
 
 # Upptime also supports notifications, assigning issues, and more
 # See https://upptime.js.org/docs/configuration
