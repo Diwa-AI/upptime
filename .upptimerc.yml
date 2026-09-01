@@ -32,7 +32,7 @@ status-website:
     <script src="https://diwa-ai.github.io/upptime/diwa-status.js" defer></script>
   metaTags:
     - name: theme-color
-      content: "#050505"
+      content: "#f5f6f8"
   customFootHtml: >
     <p class="rss-subscribe">
       <a href="https://github.com/diwa-ai/upptime/issues.atom">Subscribe via RSS</a>
