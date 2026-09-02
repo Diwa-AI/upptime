@@ -11,15 +11,14 @@ sites:
 status-website:
   # Add your custom domain name, or remove the `cname` line if you don't have a domain
   # Uncomment the `baseUrl` line if you don't have a custom domain and add your repo name there
-  #  cname: status.diwa.ai
-  baseUrl: /upptime
+  cname: status.diwa.ai
   name: Status
-  logoUrl: https://diwa-ai.github.io/upptime/diwa-logo.png
-  faviconSvg: https://diwa-ai.github.io/upptime/DiwaAI_white_bg_icon.svg
-  themeUrl: https://diwa-ai.github.io/upptime/diwa-theme.css
+  logoUrl: https://status.diwa.ai/diwa-logo.png
+  faviconSvg: https://status.diwa.ai/DiwaAI_white_bg_icon.svg
+  themeUrl: https://status.diwa.ai/diwa-theme.css
   links:
     - rel: stylesheet
-      href: https://diwa-ai.github.io/upptime/diwa-theme.css
+      href: https://status.diwa.ai/diwa-theme.css
   navbar:
     - title: diwa.ai
       href: https://www.diwa.ai
@@ -30,8 +29,8 @@ status-website:
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="icon" type="image/svg+xml" href="https://diwa-ai.github.io/upptime/DiwaAI_white_bg_icon.svg">
-    <script src="https://diwa-ai.github.io/upptime/diwa-status.js" defer></script>
+    <link rel="icon" type="image/svg+xml" href="https://status.diwa.ai/DiwaAI_white_bg_icon.svg">
+    <script src="https://status.diwa.ai/diwa-status.js" defer></script>
   metaTags:
     - name: theme-color
       content: "#f5f6f8"
