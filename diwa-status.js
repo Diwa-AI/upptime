@@ -119,13 +119,6 @@
     return date;
   }
 
-  function formatBarDate(date) {
-    return date.toLocaleDateString(undefined, {
-      month: "short",
-      day: "numeric",
-    });
-  }
-
   function parseStartTime(yml) {
     var match = String(yml || "").match(/^startTime:\s*(.+)$/m);
     if (!match) return null;
@@ -152,48 +145,37 @@
     );
   }
 
-  function recordedDays(startTime) {
-    var today = startOfDay(new Date());
-    var start = startTime ? startOfDay(startTime) : today;
-    if (start > today) start = today;
-    var days = [];
-    for (var cursor = new Date(start); cursor <= today; cursor.setDate(cursor.getDate() + 1)) {
-      days.push(new Date(cursor));
-    }
-    if (!days.length) days.push(today);
-    return days;
-  }
-
   function buildBar(dailyMinutesDown, startTime) {
     var wrap = document.createElement("div");
     wrap.className = "uptime-bar-wrap";
     var bar = document.createElement("div");
     bar.className = "uptime-bar";
+    bar.setAttribute("aria-label", "90-day uptime");
     var down = dailyMinutesDown || {};
-    var days = recordedDays(startTime);
-    bar.setAttribute("aria-label", days.length + "-day uptime");
+    var start = startTime ? startOfDay(startTime) : startOfDay(new Date());
 
-    days.forEach(function (date) {
+    for (var i = 89; i >= 0; i--) {
+      var date = new Date();
+      date.setHours(0, 0, 0, 0);
+      date.setDate(date.getDate() - i);
       var key = dayKey(date);
-      var minutes = Number(down[key] || 0);
       var tick = document.createElement("span");
-      tick.className = "uptime-tick " + tickClass(minutes);
-      tick.title =
-        key +
-        (minutes > 0 ? " · " + minutes + " min down" : " · Operational");
+      if (date < start) {
+        tick.className = "uptime-tick nodata";
+        tick.title = key + " · No data";
+      } else {
+        var minutes = Number(down[key] || 0);
+        tick.className = "uptime-tick " + tickClass(minutes);
+        tick.title =
+          key +
+          (minutes > 0 ? " · " + minutes + " min down" : " · Operational");
+      }
       bar.appendChild(tick);
-    });
+    }
 
     var labels = document.createElement("div");
     labels.className = "uptime-bar-labels";
-    if (days.length === 1) {
-      labels.innerHTML = "<span></span><span>Today</span>";
-    } else {
-      labels.innerHTML =
-        "<span>" +
-        escapeHtml(formatBarDate(days[0])) +
-        "</span><span>Today</span>";
-    }
+    labels.innerHTML = "<span>90 days ago</span><span>Today</span>";
     wrap.appendChild(bar);
     wrap.appendChild(labels);
     return wrap;

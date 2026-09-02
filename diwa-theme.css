@@ -395,16 +395,18 @@ body article.graph {
 
 .uptime-bar {
   display: flex;
-  justify-content: flex-start;
   gap: 2px;
   height: 28px;
 }
 
 .uptime-tick {
-  flex: 1 1 0;
-  min-width: 6px;
-  max-width: 14px;
+  flex: 1;
+  min-width: 0;
   border-radius: 1px;
+}
+
+.uptime-tick.nodata {
+  background: #d1d5db;
 }
 
 .uptime-tick.up {
