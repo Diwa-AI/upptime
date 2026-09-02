@@ -15,6 +15,7 @@ status-website:
   baseUrl: /upptime
   name: Status
   logoUrl: https://diwa-ai.github.io/upptime/diwa-logo.png
+  faviconSvg: https://diwa-ai.github.io/upptime/DiwaAI_white_bg_icon.svg
   themeUrl: https://diwa-ai.github.io/upptime/diwa-theme.css
   links:
     - rel: stylesheet
@@ -29,6 +30,7 @@ status-website:
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="https://diwa-ai.github.io/upptime/DiwaAI_white_bg_icon.svg">
     <script src="https://diwa-ai.github.io/upptime/diwa-status.js" defer></script>
   metaTags:
     - name: theme-color
