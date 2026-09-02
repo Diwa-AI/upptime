@@ -261,6 +261,12 @@ body h3:has(form) {
   display: none !important;
 }
 
+body.diwa-ready .loading,
+body main > .loading,
+body article.up:not(.link):not(.graph) ~ .loading {
+  display: none !important;
+}
+
 /* Service rows */
 
 body .live-status {
