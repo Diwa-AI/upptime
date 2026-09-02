@@ -19,9 +19,13 @@
     REPO +
     "/master/history/";
 
-  function isHome() {
+  function currentPath() {
     var path = window.location.pathname || "/";
-    path = path.replace(/\/+$/, "") || "/";
+    return path.replace(/\/+$/, "") || "/";
+  }
+
+  function isHome() {
+    var path = currentPath();
     return (
       path === "/" ||
       path === "/upptime" ||
@@ -30,13 +34,13 @@
     );
   }
 
-  if (!isHome()) return;
-
   var observer = null;
   var retryTimer = null;
   var observeRoot = null;
   var busy = false;
   var done = false;
+  var lastPath = null;
+  var historyHooked = false;
 
   var summaryPromise = fetch(SUMMARY_URL)
     .then(function (res) {
@@ -287,14 +291,9 @@
 
   function enhanceServices(sites) {
     wrapServices();
-    var cards = document.querySelectorAll(
-      ".live-status article, .diwa-service-list article"
-    );
-    if (!cards.length) {
-      cards = document.querySelectorAll("article.graph:not(.link)");
-    }
+    var cards = serviceCards();
     cards.forEach(function (article) {
-      if (article.dataset.diwaEnhanced) return;
+      if (article.querySelector(".uptime-bar-wrap")) return;
       var site = siteForArticle(article, sites);
       if (!site) return;
       article.dataset.diwaEnhanced = "1";
@@ -308,10 +307,12 @@
         heading.appendChild(uptimeEl);
       }
 
-      var host = document.createElement("p");
-      host.className = "diwa-service-host";
-      host.textContent = hostnameFromUrl(site.url);
-      if (heading) heading.insertAdjacentElement("afterend", host);
+      if (!article.querySelector(".diwa-service-host")) {
+        var host = document.createElement("p");
+        host.className = "diwa-service-host";
+        host.textContent = hostnameFromUrl(site.url);
+        if (heading) heading.insertAdjacentElement("afterend", host);
+      }
       article.appendChild(buildBar(site.dailyMinutesDown, site.startTime));
     });
   }
@@ -365,17 +366,26 @@
     });
   }
 
+  function serviceCards() {
+    var cards = document.querySelectorAll(
+      ".live-status article, .diwa-service-list article"
+    );
+    if (!cards.length) {
+      cards = document.querySelectorAll("article.graph:not(.link)");
+    }
+    return cards;
+  }
+
   function servicesReady() {
-    var cards = document.querySelectorAll("article.graph:not(.link)");
+    var cards = serviceCards();
     if (!cards.length) return false;
     for (var i = 0; i < cards.length; i++) {
-      if (!cards[i].dataset.diwaEnhanced) return false;
+      if (!cards[i].querySelector(".uptime-bar-wrap")) return false;
     }
     return true;
   }
 
-  function stopWatching() {
-    done = true;
+  function pauseWatching() {
     if (observer) observer.disconnect();
     if (retryTimer) {
       clearInterval(retryTimer);
@@ -383,9 +393,76 @@
     }
   }
 
+  function stopWatching() {
+    done = true;
+    pauseWatching();
+  }
+
   function resumeWatching() {
     if (done || !observer || !observeRoot) return;
     observer.observe(observeRoot, { childList: true, subtree: true });
+  }
+
+  function startRetryTimer() {
+    if (retryTimer) {
+      clearInterval(retryTimer);
+      retryTimer = null;
+    }
+    var tries = 0;
+    retryTimer = setInterval(function () {
+      if (!isHome()) {
+        pauseWatching();
+        return;
+      }
+      tries += 1;
+      if (done || tries >= 20) {
+        stopWatching();
+        return;
+      }
+      enhance();
+    }, 500);
+  }
+
+  function beginHomeWatch() {
+    done = false;
+    busy = false;
+    ensureObserver();
+    enhance();
+    resumeWatching();
+    startRetryTimer();
+  }
+
+  function leaveHome() {
+    done = true;
+    pauseWatching();
+    document.body.classList.remove("diwa-ready");
+  }
+
+  function onRouteChange() {
+    var path = currentPath();
+    if (path === lastPath) return;
+    lastPath = path;
+    if (isHome()) {
+      beginHomeWatch();
+    } else {
+      leaveHome();
+    }
+  }
+
+  function hookHistory() {
+    if (historyHooked) return;
+    historyHooked = true;
+    var origPush = history.pushState;
+    var origReplace = history.replaceState;
+    history.pushState = function () {
+      origPush.apply(this, arguments);
+      onRouteChange();
+    };
+    history.replaceState = function () {
+      origReplace.apply(this, arguments);
+      onRouteChange();
+    };
+    window.addEventListener("popstate", onRouteChange);
   }
 
   function enhance() {
@@ -403,7 +480,9 @@
           enhanceIncidents();
           document.body.classList.add("diwa-ready");
           if (servicesReady()) {
-            setTimeout(stopWatching, 1500);
+            setTimeout(function () {
+              if (isHome()) stopWatching();
+            }, 1500);
           }
         });
       })
@@ -414,29 +493,32 @@
       });
   }
 
-  function start() {
+  function ensureObserver() {
     observeRoot = document.getElementById("sapper") || document.body;
-    if (!observeRoot) {
+    if (!observeRoot) return false;
+    if (!observer) {
+      observer = new MutationObserver(function () {
+        if (lastPath !== currentPath()) {
+          onRouteChange();
+          return;
+        }
+        if (isHome() && !busy && !done) enhance();
+      });
+    }
+    return true;
+  }
+
+  function start() {
+    if (!ensureObserver()) {
       document.addEventListener("DOMContentLoaded", start);
       return;
     }
 
-    observer = new MutationObserver(function () {
-      if (!busy && !done) enhance();
-    });
-
-    enhance();
-    resumeWatching();
-
-    var tries = 0;
-    retryTimer = setInterval(function () {
-      tries += 1;
-      if (done || tries >= 20) {
-        stopWatching();
-        return;
-      }
-      enhance();
-    }, 500);
+    hookHistory();
+    lastPath = currentPath();
+    if (isHome()) {
+      beginHomeWatch();
+    }
   }
 
   if (document.readyState === "loading") {

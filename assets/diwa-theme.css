@@ -72,6 +72,16 @@ body nav .logo {
   letter-spacing: -0.02em;
   color: var(--body-text-color);
   text-decoration: none;
+  border-bottom: none;
+}
+
+body nav .logo:hover,
+body nav .logo:focus,
+body nav .logo:visited,
+body nav .logo[aria-current] {
+  color: var(--body-text-color);
+  text-decoration: none;
+  border-bottom: none;
 }
 
 body nav .logo img {
@@ -82,8 +92,6 @@ body nav .logo img {
   object-position: left center;
   margin-right: 0;
   border-radius: 0;
-  filter: invert(1) hue-rotate(180deg);
-  mix-blend-mode: multiply;
 }
 
 body nav .logo > div {
