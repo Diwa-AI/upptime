@@ -12,6 +12,12 @@
     "/master/history/summary.json";
   var ISSUES_API =
     "https://api.github.com/repos/" + OWNER + "/" + REPO + "/issues";
+  var HISTORY_BASE =
+    "https://raw.githubusercontent.com/" +
+    OWNER +
+    "/" +
+    REPO +
+    "/master/history/";
 
   function isHome() {
     var path = window.location.pathname || "/";
@@ -101,18 +107,67 @@
     return "degraded";
   }
 
-  function buildBar(dailyMinutesDown) {
+  function startOfDay(value) {
+    var date = new Date(value);
+    date.setHours(0, 0, 0, 0);
+    return date;
+  }
+
+  function formatBarDate(date) {
+    return date.toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+    });
+  }
+
+  function parseStartTime(yml) {
+    var match = String(yml || "").match(/^startTime:\s*(.+)$/m);
+    if (!match) return null;
+    var date = new Date(match[1].trim());
+    return isNaN(date.getTime()) ? null : date;
+  }
+
+  function loadStartTimes(sites) {
+    return Promise.all(
+      sites.map(function (site) {
+        if (site.startTime || !site.slug) return Promise.resolve(site);
+        return fetch(HISTORY_BASE + encodeURIComponent(site.slug) + ".yml")
+          .then(function (res) {
+            return res.ok ? res.text() : "";
+          })
+          .then(function (yml) {
+            site.startTime = parseStartTime(yml);
+            return site;
+          })
+          .catch(function () {
+            return site;
+          });
+      })
+    );
+  }
+
+  function recordedDays(startTime) {
+    var today = startOfDay(new Date());
+    var start = startTime ? startOfDay(startTime) : today;
+    if (start > today) start = today;
+    var days = [];
+    for (var cursor = new Date(start); cursor <= today; cursor.setDate(cursor.getDate() + 1)) {
+      days.push(new Date(cursor));
+    }
+    if (!days.length) days.push(today);
+    return days;
+  }
+
+  function buildBar(dailyMinutesDown, startTime) {
     var wrap = document.createElement("div");
     wrap.className = "uptime-bar-wrap";
     var bar = document.createElement("div");
     bar.className = "uptime-bar";
-    bar.setAttribute("aria-label", "90-day uptime");
     var down = dailyMinutesDown || {};
+    var days = recordedDays(startTime);
+    bar.setAttribute("aria-label", days.length + "-day uptime");
 
-    for (var i = 89; i >= 0; i--) {
-      var date = new Date();
-      date.setHours(0, 0, 0, 0);
-      date.setDate(date.getDate() - i);
+    days.forEach(function (date) {
       var key = dayKey(date);
       var minutes = Number(down[key] || 0);
       var tick = document.createElement("span");
@@ -121,14 +176,39 @@
         key +
         (minutes > 0 ? " · " + minutes + " min down" : " · Operational");
       bar.appendChild(tick);
-    }
+    });
 
     var labels = document.createElement("div");
     labels.className = "uptime-bar-labels";
-    labels.innerHTML = "<span>90 days ago</span><span>Today</span>";
+    if (days.length === 1) {
+      labels.innerHTML = "<span></span><span>Today</span>";
+    } else {
+      labels.innerHTML =
+        "<span>" +
+        escapeHtml(formatBarDate(days[0])) +
+        "</span><span>Today</span>";
+    }
     wrap.appendChild(bar);
     wrap.appendChild(labels);
     return wrap;
+  }
+
+  function stripHeroCheck(hero) {
+    Array.prototype.forEach.call(hero.childNodes, function (node) {
+      if (node.nodeType !== 3) return;
+      node.textContent = node.textContent
+        .replace(/✅/g, "")
+        .replace(/^[\u00a0\s]+/, "");
+    });
+  }
+
+  function hideDurationFilters() {
+    var forms = document.querySelectorAll("form.f, form.r");
+    Array.prototype.forEach.call(forms, function (form) {
+      form.style.display = "none";
+      var heading = form.closest("h3");
+      if (heading) heading.style.display = "none";
+    });
   }
 
   function enhanceHero(sites) {
@@ -139,7 +219,15 @@
       );
     }
     if (!hero) return;
-    if (hero.querySelector(".diwa-hero-meta")) return;
+    stripHeroCheck(hero);
+    if (hero.querySelector(".diwa-hero-meta")) {
+      var overall = hero.querySelector(".diwa-overall");
+      if (overall && sites.length) {
+        overall.textContent =
+          overallUptime(sites) + " uptime — last 90 days";
+      }
+      return;
+    }
 
     var meta = document.createElement("div");
     meta.className = "diwa-hero-meta";
@@ -156,8 +244,15 @@
     if (rss && actions) actions.appendChild(rss);
   }
 
-  function wrapServices() {
+  function serviceSection() {
     var section = document.querySelector(".live-status");
+    if (section) return section;
+    var article = document.querySelector("article.graph:not(.link)");
+    return article ? article.parentElement : null;
+  }
+
+  function wrapServices() {
+    var section = serviceSection();
     if (!section) return;
 
     var list = section.querySelector(".diwa-service-list");
@@ -192,7 +287,12 @@
 
   function enhanceServices(sites) {
     wrapServices();
-    var cards = document.querySelectorAll(".live-status article");
+    var cards = document.querySelectorAll(
+      ".live-status article, .diwa-service-list article"
+    );
+    if (!cards.length) {
+      cards = document.querySelectorAll("article.graph:not(.link)");
+    }
     cards.forEach(function (article) {
       if (article.dataset.diwaEnhanced) return;
       var site = siteForArticle(article, sites);
@@ -212,7 +312,7 @@
       host.className = "diwa-service-host";
       host.textContent = hostnameFromUrl(site.url);
       if (heading) heading.insertAdjacentElement("afterend", host);
-      article.appendChild(buildBar(site.dailyMinutesDown));
+      article.appendChild(buildBar(site.dailyMinutesDown, site.startTime));
     });
   }
 
@@ -267,11 +367,14 @@
 
   function enhance() {
     if (!isHome()) return;
+    hideDurationFilters();
     summaryPromise.then(function (sites) {
       var list = Array.isArray(sites) ? sites : [];
-      enhanceHero(list);
-      enhanceServices(list);
-      enhanceIncidents();
+      return loadStartTimes(list).then(function () {
+        enhanceHero(list);
+        enhanceServices(list);
+        enhanceIncidents();
+      });
     });
   }
 
