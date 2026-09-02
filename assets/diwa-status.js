@@ -32,6 +32,12 @@
 
   if (!isHome()) return;
 
+  var observer = null;
+  var retryTimer = null;
+  var observeRoot = null;
+  var busy = false;
+  var done = false;
+
   var summaryPromise = fetch(SUMMARY_URL)
     .then(function (res) {
       return res.ok ? res.json() : [];
@@ -209,6 +215,11 @@
       var heading = form.closest("h3");
       if (heading) heading.style.display = "none";
     });
+    Array.prototype.forEach.call(document.querySelectorAll("h3"), function (h3) {
+      if (/live\s*status/i.test(h3.textContent || "")) {
+        h3.style.display = "none";
+      }
+    });
   }
 
   function enhanceHero(sites) {
@@ -244,31 +255,38 @@
     if (rss && actions) actions.appendChild(rss);
   }
 
-  function serviceSection() {
-    var section = document.querySelector(".live-status");
-    if (section) return section;
-    var article = document.querySelector("article.graph:not(.link)");
-    return article ? article.parentElement : null;
+  function isServiceArticle(article) {
+    return (
+      article &&
+      article.tagName === "ARTICLE" &&
+      article.classList.contains("graph") &&
+      !article.classList.contains("link")
+    );
   }
 
   function wrapServices() {
-    var section = serviceSection();
-    if (!section) return;
-
-    var list = section.querySelector(".diwa-service-list");
-    var loose = Array.prototype.slice.call(
-      section.querySelectorAll(":scope > article")
+    var list = document.querySelector(".diwa-service-list");
+    var loose = Array.prototype.filter.call(
+      document.querySelectorAll("article.graph"),
+      function (article) {
+        return isServiceArticle(article) && !article.closest(".diwa-service-list");
+      }
     );
-    if (!loose.length) return;
 
-    if (!list) {
-      list = document.createElement("div");
-      list.className = "diwa-service-list";
-      loose[0].parentNode.insertBefore(list, loose[0]);
+    if (list) {
+      loose.forEach(function (article) {
+        if (article.parentNode !== list) list.appendChild(article);
+      });
+      return;
     }
 
+    if (!loose.length) return;
+
+    list = document.createElement("div");
+    list.className = "diwa-service-list";
+    loose[0].parentNode.insertBefore(list, loose[0]);
     loose.forEach(function (article) {
-      if (article.parentNode !== list) list.appendChild(article);
+      list.appendChild(article);
     });
   }
 
@@ -365,37 +383,77 @@
     });
   }
 
+  function servicesReady() {
+    var cards = document.querySelectorAll("article.graph:not(.link)");
+    if (!cards.length) return false;
+    for (var i = 0; i < cards.length; i++) {
+      if (!cards[i].dataset.diwaEnhanced) return false;
+    }
+    return true;
+  }
+
+  function stopWatching() {
+    done = true;
+    if (observer) observer.disconnect();
+    if (retryTimer) {
+      clearInterval(retryTimer);
+      retryTimer = null;
+    }
+  }
+
+  function resumeWatching() {
+    if (done || !observer || !observeRoot) return;
+    observer.observe(observeRoot, { childList: true, subtree: true });
+  }
+
   function enhance() {
-    if (!isHome()) return;
+    if (!isHome() || busy || done) return;
+    busy = true;
+    if (observer) observer.disconnect();
     hideDurationFilters();
-    summaryPromise.then(function (sites) {
-      var list = Array.isArray(sites) ? sites : [];
-      return loadStartTimes(list).then(function () {
-        enhanceHero(list);
-        enhanceServices(list);
-        enhanceIncidents();
+
+    summaryPromise
+      .then(function (sites) {
+        var list = Array.isArray(sites) ? sites : [];
+        return loadStartTimes(list).then(function () {
+          enhanceHero(list);
+          enhanceServices(list);
+          enhanceIncidents();
+          document.body.classList.add("diwa-ready");
+          if (servicesReady()) {
+            setTimeout(stopWatching, 1500);
+          }
+        });
+      })
+      .catch(function () {})
+      .then(function () {
+        busy = false;
+        if (!done) resumeWatching();
       });
-    });
   }
 
   function start() {
-    var root = document.getElementById("sapper") || document.body;
-    if (!root) {
+    observeRoot = document.getElementById("sapper") || document.body;
+    if (!observeRoot) {
       document.addEventListener("DOMContentLoaded", start);
       return;
     }
 
-    enhance();
-    var observer = new MutationObserver(function () {
-      enhance();
+    observer = new MutationObserver(function () {
+      if (!busy && !done) enhance();
     });
-    observer.observe(root, { childList: true, subtree: true });
+
+    enhance();
+    resumeWatching();
 
     var tries = 0;
-    var timer = setInterval(function () {
-      enhance();
+    retryTimer = setInterval(function () {
       tries += 1;
-      if (tries >= 20) clearInterval(timer);
+      if (done || tries >= 20) {
+        stopWatching();
+        return;
+      }
+      enhance();
     }, 500);
   }
 
