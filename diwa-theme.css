@@ -251,10 +251,13 @@ body h3 {
   letter-spacing: 0.04em;
 }
 
-/* Duration pills and Live Status heading — mockup uses a 90-day bar instead */
+/* Duration pills and Live Status heading — mockup uses a recorded-days bar */
 
 body .live-status form,
-body .live-status > h3 {
+body .live-status > h3,
+body form.f,
+body form.r,
+body h3:has(form) {
   display: none !important;
 }
 
@@ -386,13 +389,15 @@ body article.graph {
 
 .uptime-bar {
   display: flex;
+  justify-content: flex-start;
   gap: 2px;
   height: 28px;
 }
 
 .uptime-tick {
-  flex: 1;
-  min-width: 0;
+  flex: 1 1 0;
+  min-width: 6px;
+  max-width: 14px;
   border-radius: 1px;
 }
 
