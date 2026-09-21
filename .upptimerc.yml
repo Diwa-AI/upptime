@@ -47,5 +47,19 @@ i18n:
   overallUptime: "$UPTIME uptime"
   footer: "← [Back to diwa.ai](https://www.diwa.ai)"
 
+# Auto-assign incident issues opened by Uptime CI
+assignees:
+  - jasper-diwa-ai
+  - rey-lee-diwa-ai
+
+# Slack down/up alerts — store matching values as Actions secrets
+secrets:
+  - NOTIFICATION_SLACK
+  - NOTIFICATION_SLACK_WEBHOOK_URL
+
+# Keep Upptime's default: incidents shorter than 15 minutes are deleted
+# and do not appear in Past Incidents. Set skipDeleteIssues: true to keep them.
+# skipDeleteIssues: true
+
 # Upptime also supports notifications, assigning issues, and more
 # See https://upptime.js.org/docs/configuration

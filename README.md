@@ -4,6 +4,8 @@ This repository is the uptime monitor and status page for [Diwa AI](https://www.
 
 [Visit the status website →](https://status.diwa.ai)
 
+How to post maintenance or an incident: [Incident runbook](./INCIDENT_RUNBOOK.md)
+
 [![Uptime CI](https://github.com/diwa-ai/upptime/workflows/Uptime%20CI/badge.svg)](https://github.com/diwa-ai/upptime/actions/workflows/uptime.yml)
 [![Response Time CI](https://github.com/diwa-ai/upptime/workflows/Response%20Time%20CI/badge.svg)](https://github.com/diwa-ai/upptime/actions/workflows/response-time.yml)
 [![Graphs CI](https://github.com/diwa-ai/upptime/workflows/Graphs%20CI/badge.svg)](https://github.com/diwa-ai/upptime/actions/workflows/graphs.yml)

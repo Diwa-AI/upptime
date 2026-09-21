@@ -1,0 +1,18 @@
+name: Rebuild on incident
+on:
+  issues:
+    types: [opened, closed, edited, labeled, unlabeled, reopened]
+concurrency:
+  group: rebuild-on-incident
+  cancel-in-progress: true
+jobs:
+  dispatch:
+    name: Trigger status page rebuild
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch Static Site CI
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT || github.token }}
+        run: |
+          gh api "repos/${GITHUB_REPOSITORY}/dispatches" \
+            -f event_type=static_site
