@@ -50,6 +50,18 @@
       return [];
     });
 
+  var issuesPromise = fetch(ISSUES_API + "?state=all&per_page=100")
+    .then(function (res) {
+      return res.ok ? res.json() : [];
+    })
+    .then(function (payload) {
+      if (!Array.isArray(payload)) return [];
+      return payload.map(normalizeIncident).filter(Boolean);
+    })
+    .catch(function () {
+      return [];
+    });
+
   function dayKey(date) {
     var y = date.getFullYear();
     var m = String(date.getMonth() + 1).padStart(2, "0");
@@ -111,10 +123,214 @@
     }
   }
 
-  function tickClass(minutes) {
-    if (minutes <= 0) return "up";
+  function labelNames(issue) {
+    return (issue.labels || [])
+      .map(function (label) {
+        return (label && label.name) || label;
+      })
+      .filter(Boolean);
+  }
+
+  function parseMetadata(body) {
+    var meta = {};
+    var match = String(body || "").match(/<!--([\s\S]*?)-->/);
+    if (!match) return meta;
+    match[1].split("\n").forEach(function (line) {
+      var idx = line.indexOf(":");
+      if (idx < 1) return;
+      meta[line.slice(0, idx).trim()] = line.slice(idx + 1).trim();
+    });
+    return meta;
+  }
+
+  function slugList(value) {
+    if (!value) return [];
+    return String(value)
+      .split(",")
+      .map(function (item) {
+        return item.trim();
+      })
+      .filter(Boolean);
+  }
+
+  function daysBetween(start, end) {
+    var days = [];
+    var cursor = startOfDay(start);
+    var last = startOfDay(end);
+    if (last.getTime() < cursor.getTime()) last = new Date(cursor.getTime());
+    while (cursor.getTime() <= last.getTime()) {
+      days.push(dayKey(cursor));
+      cursor.setDate(cursor.getDate() + 1);
+    }
+    return days;
+  }
+
+  function normalizeIncident(issue) {
+    if (!issue || issue.pull_request) return null;
+    var labels = labelNames(issue);
+    var isMaintenance = labels.indexOf("maintenance") !== -1;
+    var isStatus = labels.indexOf("status") !== -1;
+    if (!isMaintenance && !isStatus) return null;
+
+    var meta = parseMetadata(issue.body);
+    var start = meta.start ? new Date(meta.start) : new Date(issue.created_at);
+    var end = meta.end
+      ? new Date(meta.end)
+      : issue.closed_at
+        ? new Date(issue.closed_at)
+        : new Date();
+    if (isNaN(start.getTime())) start = new Date(issue.created_at);
+    if (isNaN(end.getTime())) end = new Date();
+
+    var slugs = slugList(meta.expectedDown);
+    labels.forEach(function (name) {
+      if (name === "diwa-ai" || name === "diwa-api") slugs.push(name);
+    });
+    slugs = slugs.filter(function (slug, index, list) {
+      return list.indexOf(slug) === index;
+    });
+
+    var kind = "incident";
+    if (isMaintenance) kind = "maintenance";
+    else if (/down/i.test(issue.title || "")) kind = "outage";
+    else if (/degrad/i.test(issue.title || "")) kind = "degraded";
+
+    return {
+      number: issue.number,
+      title: String(issue.title || "").replace(/^\[[^\]]+\]\s*/, ""),
+      kind: kind,
+      minutes: Math.max(0, Math.round((end.getTime() - start.getTime()) / 60000)),
+      days: daysBetween(start, end),
+      slugs: slugs,
+    };
+  }
+
+  function incidentsForSite(incidents, site) {
+    var slug = site && site.slug;
+    return (incidents || []).filter(function (incident) {
+      if (!incident) return false;
+      if (!incident.slugs.length) return true;
+      return slug && incident.slugs.indexOf(slug) !== -1;
+    });
+  }
+
+  function dayIncidentMap(incidents) {
+    var map = {};
+    (incidents || []).forEach(function (incident) {
+      (incident.days || []).forEach(function (key) {
+        if (!map[key]) map[key] = [];
+        map[key].push(incident);
+      });
+    });
+    return map;
+  }
+
+  function formatDayHeading(date) {
+    try {
+      return date.toLocaleDateString(undefined, {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      });
+    } catch (err) {
+      return dayKey(date);
+    }
+  }
+
+  function formatDuration(minutes) {
+    var total = Math.max(0, Math.round(Number(minutes) || 0));
+    return Math.floor(total / 60) + " hrs  " + (total % 60) + " mins";
+  }
+
+  function summaryLabel(kind, minutes) {
+    if (kind === "maintenance") return "Scheduled maintenance";
+    if (kind === "outage" || minutes >= 720) return "Major outage";
+    if (kind === "degraded") return "Degraded performance";
+    if (minutes > 0) return "Downtime";
+    return "Operational";
+  }
+
+  function tickClass(minutes, incidents) {
     if (minutes >= 720) return "down";
-    return "degraded";
+    var hasOutage = (incidents || []).some(function (incident) {
+      return incident.kind === "outage";
+    });
+    if (hasOutage) return "down";
+    if (minutes > 0) return "degraded";
+    if (incidents && incidents.length) return "degraded";
+    return "up";
+  }
+
+  var tooltipEl = null;
+  var tooltipHideTimer = null;
+
+  function ensureTooltip() {
+    if (tooltipEl) return tooltipEl;
+    tooltipEl = document.createElement("div");
+    tooltipEl.className = "uptime-tooltip";
+    tooltipEl.hidden = true;
+    document.body.appendChild(tooltipEl);
+    return tooltipEl;
+  }
+
+  function hideTooltip() {
+    if (tooltipHideTimer) clearTimeout(tooltipHideTimer);
+    tooltipHideTimer = setTimeout(function () {
+      if (tooltipEl) tooltipEl.hidden = true;
+    }, 40);
+  }
+
+  function showTooltip(tick, html) {
+    if (tooltipHideTimer) {
+      clearTimeout(tooltipHideTimer);
+      tooltipHideTimer = null;
+    }
+    var el = ensureTooltip();
+    el.innerHTML = html;
+    el.hidden = false;
+    var rect = tick.getBoundingClientRect();
+    var width = el.offsetWidth || 260;
+    var left = rect.left + rect.width / 2 - width / 2;
+    left = Math.max(12, Math.min(left, window.innerWidth - width - 12));
+    el.style.left = left + "px";
+    el.style.top = Math.max(8, rect.top - el.offsetHeight - 10) + "px";
+  }
+
+  function tooltipHtml(date, minutes, incidents) {
+    var heading = formatDayHeading(date);
+    var related = incidents || [];
+    if (!related.length && minutes <= 0) {
+      return (
+        '<p class="uptime-tooltip-date">' +
+        escapeHtml(heading) +
+        "</p>" +
+        '<p class="uptime-tooltip-status up">Operational</p>'
+      );
+    }
+    var primary = related[0];
+    var kind = primary ? primary.kind : minutes >= 720 ? "outage" : "degraded";
+    var durationMinutes = minutes;
+    if (!durationMinutes && primary) durationMinutes = primary.minutes;
+    var tone = kind === "outage" || minutes >= 720 ? "down" : "degraded";
+    var html =
+      '<p class="uptime-tooltip-date">' +
+      escapeHtml(heading) +
+      "</p>" +
+      '<p class="uptime-tooltip-status ' +
+      tone +
+      '"><span class="uptime-tooltip-icon" aria-hidden="true"></span>' +
+      escapeHtml(summaryLabel(kind, durationMinutes)) +
+      '<span class="uptime-tooltip-duration">' +
+      escapeHtml(formatDuration(durationMinutes)) +
+      "</span></p>";
+    if (related.length) {
+      html += '<p class="uptime-tooltip-related">Related</p><ul>';
+      related.forEach(function (incident) {
+        html += "<li>" + escapeHtml(incident.title || "Incident") + "</li>";
+      });
+      html += "</ul>";
+    }
+    return html;
   }
 
   function startOfDay(value) {
@@ -149,13 +365,14 @@
     );
   }
 
-  function buildBar(dailyMinutesDown, startTime) {
+  function buildBar(dailyMinutesDown, startTime, incidents) {
     var wrap = document.createElement("div");
     wrap.className = "uptime-bar-wrap";
     var bar = document.createElement("div");
     bar.className = "uptime-bar";
     bar.setAttribute("aria-label", "90-day uptime");
     var down = dailyMinutesDown || {};
+    var byDay = dayIncidentMap(incidents);
     var start = startTime ? startOfDay(startTime) : startOfDay(new Date());
 
     for (var i = 89; i >= 0; i--) {
@@ -166,13 +383,29 @@
       var tick = document.createElement("span");
       if (date < start) {
         tick.className = "uptime-tick nodata";
-        tick.title = key + " · No data";
+        tick.setAttribute("aria-label", key + " · No data");
       } else {
         var minutes = Number(down[key] || 0);
-        tick.className = "uptime-tick " + tickClass(minutes);
-        tick.title =
+        var related = byDay[key] || [];
+        tick.className = "uptime-tick " + tickClass(minutes, related);
+        tick.setAttribute(
+          "aria-label",
           key +
-          (minutes > 0 ? " · " + minutes + " min down" : " · Operational");
+            (related.length
+              ? " · " + related[0].title
+              : minutes > 0
+                ? " · " + minutes + " min down"
+                : " · Operational")
+        );
+        tick.addEventListener(
+          "mouseenter",
+          (function (tickEl, dayDate, dayMinutes, dayIncidents) {
+            return function () {
+              showTooltip(tickEl, tooltipHtml(dayDate, dayMinutes, dayIncidents));
+            };
+          })(tick, new Date(date.getTime()), minutes, related)
+        );
+        tick.addEventListener("mouseleave", hideTooltip);
       }
       bar.appendChild(tick);
     }
@@ -289,7 +522,7 @@
     return null;
   }
 
-  function enhanceServices(sites) {
+  function enhanceServices(sites, incidents) {
     wrapServices();
     var cards = serviceCards();
     cards.forEach(function (article) {
@@ -313,7 +546,13 @@
         host.textContent = hostnameFromUrl(site.url);
         if (heading) heading.insertAdjacentElement("afterend", host);
       }
-      article.appendChild(buildBar(site.dailyMinutesDown, site.startTime));
+      article.appendChild(
+        buildBar(
+          site.dailyMinutesDown,
+          site.startTime,
+          incidentsForSite(incidents, site)
+        )
+      );
     });
   }
 
@@ -474,17 +713,21 @@
     summaryPromise
       .then(function (sites) {
         var list = Array.isArray(sites) ? sites : [];
-        return loadStartTimes(list).then(function () {
-          enhanceHero(list);
-          enhanceServices(list);
-          enhanceIncidents();
-          document.body.classList.add("diwa-ready");
-          if (servicesReady()) {
-            setTimeout(function () {
-              if (isHome()) stopWatching();
-            }, 1500);
+        return Promise.all([loadStartTimes(list), issuesPromise]).then(
+          function (results) {
+            var loaded = results[0];
+            var incidents = results[1] || [];
+            enhanceHero(loaded);
+            enhanceServices(loaded, incidents);
+            enhanceIncidents();
+            document.body.classList.add("diwa-ready");
+            if (servicesReady()) {
+              setTimeout(function () {
+                if (isHome()) stopWatching();
+              }, 1500);
+            }
           }
-        });
+        );
       })
       .catch(function () {})
       .then(function () {
@@ -515,6 +758,8 @@
     }
 
     hookHistory();
+    window.addEventListener("scroll", hideTooltip, true);
+    window.addEventListener("resize", hideTooltip);
     lastPath = currentPath();
     if (isHome()) {
       beginHomeWatch();
