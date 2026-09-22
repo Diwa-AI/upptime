@@ -64,7 +64,26 @@ If the page is stale, dispatch Static Site CI. Site rebuilds also run daily at 0
 
 ## Slack alerts
 
-Uptime CI sends a Slack message when a monitored endpoint goes down or comes back up.
+Uptime CI sends a Slack message when a monitored endpoint goes down or comes back up. Messages are multi-line (not a single run-on sentence):
+
+**Down**
+
+```
+*Diwa AI* is **down**
+
+• Endpoint: (https://www.diwa.ai)
+• HTTP code: `503`
+• Status page: https://status.diwa.ai
+• Incident: https://github.com/Diwa-AI/upptime/issues/…
+```
+
+**Up**
+
+```
+*Diwa AI* is back up
+
+• Status page: https://status.diwa.ai
+```
 
 Required Actions secrets (Settings → Secrets and variables → Actions):
 
@@ -72,12 +91,35 @@ Required Actions secrets (Settings → Secrets and variables → Actions):
 | --- | --- |
 | `NOTIFICATION_SLACK` | `true` |
 | `NOTIFICATION_SLACK_WEBHOOK_URL` | Incoming webhook URL for the on-call channel |
+| `NOTIFICATIONS_DOWN_MESSAGE` | Down template (see below) |
+| `NOTIFICATIONS_UP_MESSAGE` | Up template (see below) |
+
+Down template:
+
+```
+*$SITE_NAME* is $STATUS
+
+• Endpoint: $SITE_URL
+• HTTP code: `$RESPONSE_CODE`
+• Status page: https://status.diwa.ai
+• Incident: $ISSUE_URL
+```
+
+Up template:
+
+```
+*$SITE_NAME* $STATUS
+
+• Status page: https://status.diwa.ai
+```
 
 Rotate the webhook by replacing `NOTIFICATION_SLACK_WEBHOOK_URL`. Manual maintenance/incident issues do **not** send Slack; only automated down/up events do.
 
 ```bash
 gh secret set NOTIFICATION_SLACK -R Diwa-AI/upptime --body true
 gh secret set NOTIFICATION_SLACK_WEBHOOK_URL -R Diwa-AI/upptime
+gh secret set NOTIFICATIONS_DOWN_MESSAGE -R Diwa-AI/upptime
+gh secret set NOTIFICATIONS_UP_MESSAGE -R Diwa-AI/upptime
 ```
 
 ## GH_PAT

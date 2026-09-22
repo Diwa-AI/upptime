@@ -534,6 +534,7 @@ body article.graph {
 
 /* Incidents */
 
+body main.container > h2,
 body section > h2 {
   margin-top: 2.25rem;
   margin-bottom: 0.85rem;

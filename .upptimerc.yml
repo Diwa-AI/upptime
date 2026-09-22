@@ -56,6 +56,8 @@ assignees:
 secrets:
   - NOTIFICATION_SLACK
   - NOTIFICATION_SLACK_WEBHOOK_URL
+  - NOTIFICATIONS_DOWN_MESSAGE
+  - NOTIFICATIONS_UP_MESSAGE
 
 # Keep Upptime's default: incidents shorter than 15 minutes are deleted
 # and do not appear in Past Incidents. Set skipDeleteIssues: true to keep them.

@@ -509,6 +509,77 @@
     });
   }
 
+  function headingText(el) {
+    return String((el && el.textContent) || "").replace(/\s+/g, " ").trim();
+  }
+
+  function findHeading(pattern) {
+    var headings = document.querySelectorAll("h2");
+    for (var i = 0; i < headings.length; i++) {
+      if (pattern.test(headingText(headings[i]))) return headings[i];
+    }
+    return null;
+  }
+
+  function isActiveIncidentCard(el) {
+    if (!el || el.tagName !== "ARTICLE") return false;
+    if (el.classList.contains("graph") && !el.classList.contains("link")) {
+      return false;
+    }
+    return (
+      el.classList.contains("down-active") ||
+      ((el.classList.contains("down") || el.classList.contains("degraded")) &&
+        el.classList.contains("link"))
+    );
+  }
+
+  function placeIncidentsAfterServices() {
+    var live =
+      document.querySelector(".diwa-service-list") ||
+      document.querySelector(".live-status");
+    if (!live) return;
+
+    var activeHeading = findHeading(/^active incidents$/i);
+    if (!activeHeading) return;
+
+    var scheduledHeading = findHeading(/^past scheduled maintenance$/i);
+    var parent = live.parentNode;
+    var section = activeHeading.parentElement;
+    if (
+      section &&
+      section.tagName === "SECTION" &&
+      !section.classList.contains("live-status") &&
+      section !== parent
+    ) {
+      if (live.nextElementSibling === section) return;
+      if (scheduledHeading && section.contains(scheduledHeading)) return;
+      parent.insertBefore(section, scheduledHeading || live.nextSibling);
+      return;
+    }
+
+    if (live.nextElementSibling === activeHeading) return;
+
+    var nodes = [activeHeading];
+    var sibling = activeHeading.nextElementSibling;
+    while (sibling && isActiveIncidentCard(sibling)) {
+      nodes.push(sibling);
+      sibling = sibling.nextElementSibling;
+    }
+
+    if (scheduledHeading) {
+      nodes.forEach(function (node) {
+        parent.insertBefore(node, scheduledHeading);
+      });
+      return;
+    }
+    nodes
+      .slice()
+      .reverse()
+      .forEach(function (node) {
+        parent.insertBefore(node, live.nextSibling);
+      });
+  }
+
   function siteForArticle(article, sites) {
     var heading = article.querySelector("h4");
     if (!heading) return null;
@@ -524,6 +595,7 @@
 
   function enhanceServices(sites, incidents) {
     wrapServices();
+    placeIncidentsAfterServices();
     var cards = serviceCards();
     cards.forEach(function (article) {
       if (article.querySelector(".uptime-bar-wrap")) return;
@@ -634,7 +706,10 @@
 
   function stopWatching() {
     done = true;
-    pauseWatching();
+    if (retryTimer) {
+      clearInterval(retryTimer);
+      retryTimer = null;
+    }
   }
 
   function resumeWatching() {
@@ -720,6 +795,7 @@
             enhanceHero(loaded);
             enhanceServices(loaded, incidents);
             enhanceIncidents();
+            placeIncidentsAfterServices();
             document.body.classList.add("diwa-ready");
             if (servicesReady()) {
               setTimeout(function () {
@@ -745,7 +821,9 @@
           onRouteChange();
           return;
         }
-        if (isHome() && !busy && !done) enhance();
+        if (!isHome()) return;
+        placeIncidentsAfterServices();
+        if (!busy && !done) enhance();
       });
     }
     return true;
