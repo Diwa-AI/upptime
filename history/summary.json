@@ -41,18 +41,16 @@
     "icon": "https://icons.duckduckgo.com/ip3/example.com.ico",
     "slug": "slack-test-ignore",
     "status": "up",
-    "uptime": "20.67%",
-    "uptimeDay": "20.67%",
-    "uptimeWeek": "20.67%",
-    "uptimeMonth": "20.67%",
-    "uptimeYear": "20.67%",
+    "uptime": "100.00%",
+    "uptimeDay": "100.00%",
+    "uptimeWeek": "100.00%",
+    "uptimeMonth": "100.00%",
+    "uptimeYear": "100.00%",
     "time": 7777,
     "timeDay": 7777,
     "timeWeek": 7777,
     "timeMonth": 7777,
     "timeYear": 7777,
-    "dailyMinutesDown": {
-      "2026-09-22": 6
-    }
+    "dailyMinutesDown": {}
   }
 ]
