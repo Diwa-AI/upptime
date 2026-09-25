@@ -157,9 +157,9 @@ body article {
   padding: 1.15rem 1.25rem;
 }
 
-body article.up:not(.link):not(.graph),
-body article.down:not(.link):not(.graph),
-body article.degraded:not(.link):not(.graph) {
+body.diwa-ready article.up:not(.link):not(.graph),
+body.diwa-ready article.down:not(.link):not(.graph),
+body.diwa-ready article.degraded:not(.link):not(.graph) {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -176,9 +176,9 @@ body article.degraded:not(.link):not(.graph) {
   color: var(--body-text-color);
 }
 
-body article.up:not(.link):not(.graph)::before,
-body article.down:not(.link):not(.graph)::before,
-body article.degraded:not(.link):not(.graph)::before {
+body.diwa-ready article.up:not(.link):not(.graph)::before,
+body.diwa-ready article.down:not(.link):not(.graph)::before,
+body.diwa-ready article.degraded:not(.link):not(.graph)::before {
   content: "";
   display: block;
   width: 3.5rem;
@@ -192,12 +192,12 @@ body article.degraded:not(.link):not(.graph)::before {
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'><polyline points='20 6 9 17 4 12'/></svg>");
 }
 
-body article.down:not(.link):not(.graph)::before {
+body.diwa-ready article.down:not(.link):not(.graph)::before {
   background-color: #ef4444;
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round'><line x1='18' y1='6' x2='6' y2='18'/><line x1='6' y1='6' x2='18' y2='18'/></svg>");
 }
 
-body article.degraded:not(.link):not(.graph)::before {
+body.diwa-ready article.degraded:not(.link):not(.graph)::before {
   background-color: #f59e0b;
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round'><line x1='12' y1='8' x2='12' y2='13'/><circle cx='12' cy='17' r='0.8' fill='white' stroke='none'/></svg>");
 }
@@ -393,6 +393,15 @@ body .live-status article > div:not(.uptime-bar-wrap):not(.diwa-timeline) {
   color: var(--muted-text-color);
 }
 
+.diwa-service-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.diwa-service-link:hover {
+  color: var(--brand-teal);
+}
+
 body article.graph {
   background-image: none !important;
 }
@@ -574,9 +583,9 @@ body article.degraded.link:not(.down-active) {
   padding-right: 0;
 }
 
-body article.down.link > .f,
-body article.degraded.link > .f {
-  display: none;
+body article.down.link.diwa-clickable,
+body article.degraded.link.diwa-clickable {
+  cursor: pointer;
 }
 
 body article.down.link h4,
@@ -591,9 +600,26 @@ body article.down-active h4::after {
   content: none;
 }
 
-body article.down.link .f.r,
-body article.degraded.link .f.r {
-  display: none;
+body.diwa-ready article.down.link > .f,
+body.diwa-ready article.degraded.link > .f {
+  margin-top: 0.35rem;
+}
+
+body.diwa-ready article.down.link .f.r,
+body.diwa-ready article.degraded.link .f.r,
+.diwa-view-details {
+  display: inline-block;
+  margin-top: 0.35rem;
+  color: var(--brand-teal);
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+body.diwa-ready article.down.link .f.r:hover,
+body.diwa-ready article.degraded.link .f.r:hover,
+.diwa-view-details:hover {
+  text-decoration: underline;
 }
 
 body article.down-active {
@@ -650,6 +676,29 @@ body .tag.open {
 }
 
 /* History / incident detail */
+
+body.diwa-detail .diwa-incident-detail {
+  margin-top: 1.5rem;
+}
+
+body.diwa-detail .diwa-incident-detail h3 {
+  margin: 1.5rem 0 0.6rem;
+  font-size: 1.05rem;
+  font-weight: 650;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--body-text-color);
+}
+
+body.diwa-detail .diwa-incident-body {
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: var(--body-text-color);
+}
+
+body.diwa-detail .diwa-hidden-upptime-comment {
+  display: none !important;
+}
 
 body dl dt {
   color: var(--muted-text-color);
@@ -715,16 +764,16 @@ body > .rss-subscribe {
     max-width: 6.5rem;
   }
 
-  body article.up:not(.link):not(.graph),
-  body article.down:not(.link):not(.graph),
-  body article.degraded:not(.link):not(.graph) {
+  body.diwa-ready article.up:not(.link):not(.graph),
+  body.diwa-ready article.down:not(.link):not(.graph),
+  body.diwa-ready article.degraded:not(.link):not(.graph) {
     font-size: 1.35rem;
     padding-top: 1.25rem;
   }
 
-  body article.up:not(.link):not(.graph)::before,
-  body article.down:not(.link):not(.graph)::before,
-  body article.degraded:not(.link):not(.graph)::before {
+  body.diwa-ready article.up:not(.link):not(.graph)::before,
+  body.diwa-ready article.down:not(.link):not(.graph)::before,
+  body.diwa-ready article.degraded:not(.link):not(.graph)::before {
     width: 2.85rem;
     height: 2.85rem;
     background-size: 1.15rem;
