@@ -43,14 +43,32 @@ Use this for degraded performance, partial outages, or anything the HTTP check s
 
 1. Open [New Issue](https://github.com/Diwa-AI/upptime/issues/new/choose) → **Incident**.
 2. Keep the `status` label and add `diwa-ai` and/or `diwa-api`.
-3. Post timeline updates as comments. Close the issue when resolved.
+3. Set the title to `Investigating [impact] — [services]`, for example `Investigating service degradation — Diwa AI and Diwa API`.
+4. The issue body is the first public update:
+
+   ```
+   Investigating - We are aware of [impact]. We are investigating.
+   ```
+
+5. Post later updates as comments (newest appears first on the status page):
+
+   | Prefix | When |
+   | --- | --- |
+   | `Investigating -` | First public note |
+   | `Identified -` | Cause known / fix in progress |
+   | `Monitoring -` | Fix deployed, watching |
+   | `Resolved -` | Last public note |
+
+6. Close the issue after the Resolved comment.
 
 ## Real outage (automated)
 
-No action needed. When a check fails, Uptime CI opens a locked issue titled like `🛑 Diwa AI is down`, assigns the admins above, and posts to Slack. When the check recovers:
+No action needed to open the issue. When a check fails, Uptime CI opens a locked issue titled like `🛑 Diwa AI is down`, assigns the admins above, and posts to Slack. When the check recovers:
 
 - **Under 15 minutes:** the issue is **deleted**. It does not appear in Past incidents. This is intentional so short flaps stay out of public history. File a manual Incident if a short event still needs to be public.
 - **15 minutes or longer:** the issue is **closed**, shown under Past incidents, and the day’s uptime bar is colored with a hover tooltip.
+
+For a public-facing timeline, a collaborator should edit the title to `Investigating [impact] — [services]` and add the same prefixed comments (write access is required because Upptime locks the issue).
 
 Do not take production down to test this path.
 

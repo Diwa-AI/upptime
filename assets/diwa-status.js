@@ -192,12 +192,15 @@
 
     var kind = "incident";
     if (isMaintenance) kind = "maintenance";
-    else if (/down/i.test(issue.title || "")) kind = "outage";
+    else if (/down|outage/i.test(issue.title || "")) kind = "outage";
     else if (/degrad/i.test(issue.title || "")) kind = "degraded";
 
     return {
       number: issue.number,
-      title: String(issue.title || "").replace(/^\[[^\]]+\]\s*/, ""),
+      title: String(issue.title || "")
+        .replace(/^\[[^\]]+\]\s*/, "")
+        .replace(/^[🛑⚠️]\s*/u, "")
+        .trim(),
       kind: kind,
       minutes: Math.max(0, Math.round((end.getTime() - start.getTime()) / 60000)),
       days: daysBetween(start, end),
@@ -384,6 +387,21 @@
       if (date < start) {
         tick.className = "uptime-tick nodata";
         tick.setAttribute("aria-label", key + " · No data");
+        tick.addEventListener(
+          "mouseenter",
+          (function (tickEl, dayDate) {
+            return function () {
+              showTooltip(
+                tickEl,
+                '<p class="uptime-tooltip-date">' +
+                  escapeHtml(formatDayHeading(dayDate)) +
+                  "</p>" +
+                  '<p class="uptime-tooltip-status">No data</p>'
+              );
+            };
+          })(tick, new Date(date.getTime()))
+        );
+        tick.addEventListener("mouseleave", hideTooltip);
       } else {
         var minutes = Number(down[key] || 0);
         var related = byDay[key] || [];
@@ -635,6 +653,54 @@
     return match ? match[1] : null;
   }
 
+  var STATUS_PREFIX =
+    /^(Investigating|Identified|Monitoring|Resolved)\s*[-–—]\s*/i;
+
+  function parseStatusUpdate(text) {
+    var raw = String(text || "")
+      .replace(/<!--[\s\S]*?-->/g, "")
+      .trim();
+    if (!raw) return null;
+    var match = raw.match(STATUS_PREFIX);
+    if (!match) {
+      return { status: "", body: raw };
+    }
+    return {
+      status: match[1].charAt(0).toUpperCase() + match[1].slice(1).toLowerCase(),
+      body: raw.slice(match[0].length).trim(),
+    };
+  }
+
+  function formatUtcStamp(iso) {
+    var date = new Date(iso);
+    if (isNaN(date.getTime())) return "";
+    var months = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
+    var hh = String(date.getUTCHours()).padStart(2, "0");
+    var mm = String(date.getUTCMinutes()).padStart(2, "0");
+    return months[date.getUTCMonth()] + " " + date.getUTCDate() + ", " + hh + ":" + mm + " UTC";
+  }
+
+  function hasStatusPrefix(text) {
+    return STATUS_PREFIX.test(
+      String(text || "")
+        .replace(/<!--[\s\S]*?-->/g, "")
+        .trim()
+    );
+  }
+
   function enhanceIncidents() {
     var cards = document.querySelectorAll(
       "article.down.link, article.degraded.link"
@@ -645,27 +711,59 @@
       if (!number) return;
       article.dataset.diwaTimeline = "loading";
 
-      fetch(ISSUES_API + "/" + number + "/comments")
-        .then(function (res) {
+      Promise.all([
+        fetch(ISSUES_API + "/" + number).then(function (res) {
+          return res.ok ? res.json() : null;
+        }),
+        fetch(ISSUES_API + "/" + number + "/comments").then(function (res) {
           return res.ok ? res.json() : [];
-        })
-        .then(function (comments) {
-          if (!Array.isArray(comments) || !comments.length) {
+        }),
+      ])
+        .then(function (results) {
+          var issue = results[0];
+          var comments = Array.isArray(results[1]) ? results[1] : [];
+          var updates = [];
+          if (issue && hasStatusPrefix(issue.body)) {
+            var first = parseStatusUpdate(issue.body);
+            if (first && first.body) {
+              updates.push({
+                status: first.status,
+                body: first.body,
+                at: issue.created_at,
+              });
+            }
+          }
+          comments.forEach(function (comment) {
+            var parsed = parseStatusUpdate(comment.body);
+            if (!parsed || !parsed.body) return;
+            updates.push({
+              status: parsed.status,
+              body: parsed.body,
+              at: comment.created_at,
+            });
+          });
+          updates.sort(function (a, b) {
+            return new Date(b.at).getTime() - new Date(a.at).getTime();
+          });
+          if (!updates.length) {
             article.dataset.diwaTimeline = "empty";
             return;
           }
           var timeline = document.createElement("div");
           timeline.className = "diwa-timeline";
-          comments.forEach(function (comment) {
+          updates.forEach(function (update) {
             var item = document.createElement("div");
             item.className = "diwa-timeline-item";
             item.innerHTML =
-              '<p class="diwa-timeline-when">' +
-              escapeHtml(formatWhen(comment.created_at)) +
+              '<p class="diwa-timeline-body">' +
+              (update.status
+                ? "<strong>" + escapeHtml(update.status) + " - </strong>"
+                : "") +
+              simpleMarkdown(update.body) +
               "</p>" +
-              '<div class="diwa-timeline-body">' +
-              simpleMarkdown(comment.body || "") +
-              "</div>";
+              '<p class="diwa-timeline-when">' +
+              escapeHtml(formatUtcStamp(update.at)) +
+              "</p>";
             timeline.appendChild(item);
           });
           article.appendChild(timeline);

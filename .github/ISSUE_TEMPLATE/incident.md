@@ -1,23 +1,28 @@
 ---
 name: Incident
 about: Report an unplanned issue not caught by automated checks
-title: "[Incident] "
+title: "Investigating [impact] — [services]"
 labels: status
 assignees: ''
 ---
 
-Add labels `diwa-ai` and/or `diwa-api` so this incident is tied to
-those services on the status page. Keep the `status` label.
+Keep the `status` label and add `diwa-ai` and/or `diwa-api`.
 
-**What's happening**
-Describe the user-facing impact (errors, latency, partial outage).
+The title appears on the status page as-is. Example:
+`Investigating service degradation — Diwa AI and Diwa API`
 
-**Affected services**
-- [ ] Diwa AI (`diwa-ai` — https://www.diwa.ai)
-- [ ] Diwa API (`diwa-api` — https://www.diwa.ai/api/v1/health)
+The body is the first public update. Use this prefix:
 
-**Status**
-Investigating
+```
+Investigating - We are aware of [impact]. We are investigating.
+```
 
-Post updates as comments on this issue. They appear as the timeline
-on https://status.diwa.ai. Close the issue when the incident is resolved.
+Later comments (newest shows first on https://status.diwa.ai):
+
+```
+Identified - The root cause has been identified and a fix is being implemented.
+Monitoring - A fix has been deployed. We are monitoring.
+Resolved - This incident has been resolved.
+```
+
+Close the issue after the Resolved comment.
