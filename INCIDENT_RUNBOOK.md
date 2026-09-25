@@ -33,7 +33,32 @@ Write access is required because Upptime **locks** auto-opened issues. Only coll
    ```
 
 4. Describe impact in the body. Comment with updates as the window progresses.
-5. Upptime closes the issue when `end` is reached. It then moves into **Past incidents**.
+5. Upptime closes the issue when `end` is reached. It then moves into **Past scheduled maintenance**.
+
+Filled example:
+
+```
+Title: [Scheduled Maintenance] Database index rebuild — Diwa AI
+
+<!--
+start: 2026-09-21T13:00:00.000Z
+end: 2026-09-21T14:00:00.000Z
+expectedDown: diwa-ai
+-->
+
+**What's changing**
+We are rebuilding search indexes on Diwa AI to improve query performance.
+
+**Customer impact**
+The website may be briefly unavailable or slower during the window.
+The API health endpoint is not in scope.
+```
+
+Comment when the window ends:
+
+```
+Completed - Index rebuild finished. Diwa AI is operating normally.
+```
 
 The status page rebuilds automatically when the issue is opened, edited, or closed. If it does not, run **Actions → Static Site CI → Run workflow**.
 
@@ -61,6 +86,23 @@ Use this for degraded performance, partial outages, or anything the HTTP check s
 
 6. Close the issue after the Resolved comment.
 
+Filled example:
+
+```
+Title: Investigating service degradation — Diwa AI
+Labels: status, diwa-ai
+
+Investigating - We are aware of slower page loads on Diwa AI. We are investigating.
+```
+
+Then comment, newest first on the public page:
+
+```
+Identified - Elevated latency is limited to the web app. A fix is being implemented.
+Monitoring - A fix has been deployed. We are monitoring.
+Resolved - Response times are back to normal. This incident has been resolved.
+```
+
 ## Real outage (automated)
 
 No action needed to open the issue. When a check fails, Uptime CI opens a locked issue titled like `🛑 Diwa AI is down`, assigns the admins above, and posts to Slack. When the check recovers:
@@ -70,13 +112,25 @@ No action needed to open the issue. When a check fails, Uptime CI opens a locked
 
 For a public-facing timeline, a collaborator should edit the title to `Investigating [impact] — [services]` and add the same prefixed comments (write access is required because Upptime locks the issue).
 
+Filled example after a check recovers (do not take production down to create one):
+
+```
+Title: Diwa AI is down
+Labels: status, diwa-ai (added by Uptime CI)
+
+Investigating - Automated checks reported Diwa AI unreachable. We are investigating.
+Identified - A reverse-proxy timeout was returning 503. A restart is in progress.
+Resolved - Checks are succeeding again. This outage has been resolved.
+```
+
 Do not take production down to test this path.
 
 ## After posting
 
 - Public page: [status.diwa.ai](https://status.diwa.ai)
 - Issue RSS: https://github.com/Diwa-AI/upptime/issues.atom
-- Hover a day on the 90-day bar to see related incident titles.
+- Hover a day on the 90-day bar to see related incident titles. Click a tick to open the incident or the service history page.
+- Click a past incident or maintenance card to open `/incident/{number}` with the description and updates.
 
 If the page is stale, dispatch Static Site CI. Site rebuilds also run daily at 01:00 UTC.
 

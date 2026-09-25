@@ -34,8 +34,29 @@
     );
   }
 
+  function isIncidentPage() {
+    return /\/incident\/\d+$/.test(currentPath());
+  }
+
+  function incidentNumberFromPath() {
+    var match = currentPath().match(/\/incident\/(\d+)$/);
+    return match ? match[1] : null;
+  }
+
+  function navigateTo(href) {
+    if (!href) return;
+    window.location.href = href;
+  }
+
+  function stripIssueBody(text) {
+    return String(text || "")
+      .replace(/<!--[\s\S]*?-->/g, "")
+      .trim();
+  }
+
   var observer = null;
   var retryTimer = null;
+  var detailTimer = null;
   var observeRoot = null;
   var busy = false;
   var done = false;
@@ -368,7 +389,23 @@
     );
   }
 
-  function buildBar(dailyMinutesDown, startTime, incidents) {
+  function attachTickNav(tick, href) {
+    if (!href) return;
+    tick.setAttribute("role", "link");
+    tick.setAttribute("tabindex", "0");
+    tick.addEventListener("click", function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+      navigateTo(href);
+    });
+    tick.addEventListener("keydown", function (event) {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      navigateTo(href);
+    });
+  }
+
+  function buildBar(dailyMinutesDown, startTime, incidents, slug) {
     var wrap = document.createElement("div");
     wrap.className = "uptime-bar-wrap";
     var bar = document.createElement("div");
@@ -377,6 +414,7 @@
     var down = dailyMinutesDown || {};
     var byDay = dayIncidentMap(incidents);
     var start = startTime ? startOfDay(startTime) : startOfDay(new Date());
+    var historyHref = slug ? "/history/" + encodeURIComponent(slug) : "";
 
     for (var i = 89; i >= 0; i--) {
       var date = new Date();
@@ -402,9 +440,14 @@
           })(tick, new Date(date.getTime()))
         );
         tick.addEventListener("mouseleave", hideTooltip);
+        attachTickNav(tick, historyHref);
       } else {
         var minutes = Number(down[key] || 0);
         var related = byDay[key] || [];
+        var href =
+          related.length && related[0].number
+            ? "/incident/" + related[0].number
+            : historyHref;
         tick.className = "uptime-tick " + tickClass(minutes, related);
         tick.setAttribute(
           "aria-label",
@@ -424,6 +467,7 @@
           })(tick, new Date(date.getTime()), minutes, related)
         );
         tick.addEventListener("mouseleave", hideTooltip);
+        attachTickNav(tick, href);
       }
       bar.appendChild(tick);
     }
@@ -611,6 +655,34 @@
     return null;
   }
 
+  function ensureHistoryLink(article, site) {
+    if (!site || !site.slug) return;
+    var href = "/history/" + encodeURIComponent(site.slug);
+    var heading = article.querySelector("h4");
+    if (!heading) return;
+
+    var parentLink = heading.closest("a[href*='history']");
+    if (parentLink) {
+      parentLink.setAttribute("href", href);
+      return;
+    }
+
+    var existing = heading.querySelector("a.diwa-service-link");
+    if (existing) {
+      existing.setAttribute("href", href);
+      return;
+    }
+
+    var link = document.createElement("a");
+    link.className = "diwa-service-link";
+    link.href = href;
+    var uptime = heading.querySelector(".diwa-service-uptime");
+    while (heading.firstChild && heading.firstChild !== uptime) {
+      link.appendChild(heading.firstChild);
+    }
+    heading.insertBefore(link, heading.firstChild);
+  }
+
   function enhanceServices(sites, incidents) {
     wrapServices();
     placeIncidentsAfterServices();
@@ -636,11 +708,13 @@
         host.textContent = hostnameFromUrl(site.url);
         if (heading) heading.insertAdjacentElement("afterend", host);
       }
+      ensureHistoryLink(article, site);
       article.appendChild(
         buildBar(
           site.dailyMinutesDown,
           site.startTime,
-          incidentsForSite(incidents, site)
+          incidentsForSite(incidents, site),
+          site.slug
         )
       );
     });
@@ -701,14 +775,86 @@
     );
   }
 
+  function collectUpdates(issue, comments, includeBody) {
+    var updates = [];
+    if (includeBody && issue) {
+      var first = parseStatusUpdate(issue.body);
+      if (first && first.body) {
+        updates.push({
+          status: first.status,
+          body: first.body,
+          at: issue.created_at,
+        });
+      }
+    }
+    (comments || []).forEach(function (comment) {
+      var parsed = parseStatusUpdate(comment.body);
+      if (!parsed || !parsed.body) return;
+      updates.push({
+        status: parsed.status,
+        body: parsed.body,
+        at: comment.created_at,
+      });
+    });
+    updates.sort(function (a, b) {
+      return new Date(b.at).getTime() - new Date(a.at).getTime();
+    });
+    return updates;
+  }
+
+  function renderTimeline(updates) {
+    var timeline = document.createElement("div");
+    timeline.className = "diwa-timeline";
+    updates.forEach(function (update) {
+      var item = document.createElement("div");
+      item.className = "diwa-timeline-item";
+      item.innerHTML =
+        '<p class="diwa-timeline-body">' +
+        (update.status
+          ? "<strong>" + escapeHtml(update.status) + " - </strong>"
+          : "") +
+        simpleMarkdown(update.body) +
+        "</p>" +
+        '<p class="diwa-timeline-when">' +
+        escapeHtml(formatUtcStamp(update.at)) +
+        "</p>";
+      timeline.appendChild(item);
+    });
+    return timeline;
+  }
+
+  function makeCardClickable(article, number) {
+    if (!number || article.dataset.diwaClickable) return;
+    article.dataset.diwaClickable = "1";
+    article.classList.add("diwa-clickable");
+    var href = "/incident/" + number;
+    var report = article.querySelector("a[href*='incident']");
+    if (report) {
+      report.textContent = "View details";
+      report.classList.add("diwa-view-details");
+      report.setAttribute("href", href);
+    } else {
+      report = document.createElement("a");
+      report.className = "diwa-view-details";
+      report.href = href;
+      report.textContent = "View details";
+      article.appendChild(report);
+    }
+    article.addEventListener("click", function (event) {
+      if (event.target.closest("a")) return;
+      navigateTo(href);
+    });
+  }
+
   function enhanceIncidents() {
     var cards = document.querySelectorAll(
       "article.down.link, article.degraded.link"
     );
     cards.forEach(function (article) {
-      if (article.dataset.diwaTimeline) return;
       var number = incidentNumber(article);
       if (!number) return;
+      makeCardClickable(article, number);
+      if (article.dataset.diwaTimeline) return;
       article.dataset.diwaTimeline = "loading";
 
       Promise.all([
@@ -722,57 +868,117 @@
         .then(function (results) {
           var issue = results[0];
           var comments = Array.isArray(results[1]) ? results[1] : [];
-          var updates = [];
-          if (issue && hasStatusPrefix(issue.body)) {
-            var first = parseStatusUpdate(issue.body);
-            if (first && first.body) {
-              updates.push({
-                status: first.status,
-                body: first.body,
-                at: issue.created_at,
-              });
-            }
-          }
-          comments.forEach(function (comment) {
-            var parsed = parseStatusUpdate(comment.body);
-            if (!parsed || !parsed.body) return;
-            updates.push({
-              status: parsed.status,
-              body: parsed.body,
-              at: comment.created_at,
-            });
-          });
-          updates.sort(function (a, b) {
-            return new Date(b.at).getTime() - new Date(a.at).getTime();
-          });
+          var updates = collectUpdates(issue, comments, true);
           if (!updates.length) {
             article.dataset.diwaTimeline = "empty";
             return;
           }
-          var timeline = document.createElement("div");
-          timeline.className = "diwa-timeline";
-          updates.forEach(function (update) {
-            var item = document.createElement("div");
-            item.className = "diwa-timeline-item";
-            item.innerHTML =
-              '<p class="diwa-timeline-body">' +
-              (update.status
-                ? "<strong>" + escapeHtml(update.status) + " - </strong>"
-                : "") +
-              simpleMarkdown(update.body) +
-              "</p>" +
-              '<p class="diwa-timeline-when">' +
-              escapeHtml(formatUtcStamp(update.at)) +
-              "</p>";
-            timeline.appendChild(item);
-          });
-          article.appendChild(timeline);
+          article.appendChild(renderTimeline(updates));
           article.dataset.diwaTimeline = "ready";
         })
         .catch(function () {
           article.dataset.diwaTimeline = "error";
         });
     });
+  }
+
+  function hideUpptimeComments(panel) {
+    var node = panel.nextElementSibling;
+    while (node) {
+      var next = node.nextElementSibling;
+      if (
+        node.tagName === "FOOTER" ||
+        node.classList.contains("rss-subscribe")
+      ) {
+        break;
+      }
+      var text = String(node.textContent || "").toLowerCase();
+      var href = (node.getAttribute && node.getAttribute("href")) || "";
+      if (/github/i.test(href) || /view on github/i.test(text)) {
+        node = next;
+        continue;
+      }
+      node.classList.add("diwa-hidden-upptime-comment");
+      node = next;
+    }
+  }
+
+  function enhanceIncidentDetail() {
+    var number = incidentNumberFromPath();
+    if (!number) return;
+    if (
+      document.querySelector(
+        ".diwa-incident-detail[data-number='" + number + "']"
+      )
+    ) {
+      return;
+    }
+
+    document.body.classList.add("diwa-detail");
+    document.body.classList.remove("diwa-ready");
+
+    Promise.all([
+      fetch(ISSUES_API + "/" + number).then(function (res) {
+        return res.ok ? res.json() : null;
+      }),
+      fetch(ISSUES_API + "/" + number + "/comments").then(function (res) {
+        return res.ok ? res.json() : [];
+      }),
+    ])
+      .then(function (results) {
+        if (
+          document.querySelector(
+            ".diwa-incident-detail[data-number='" + number + "']"
+          )
+        ) {
+          return;
+        }
+        var issue = results[0];
+        var comments = Array.isArray(results[1]) ? results[1] : [];
+        if (!issue) return;
+
+        var container =
+          document.querySelector("main.container") ||
+          document.querySelector("main") ||
+          document.getElementById("sapper");
+        if (!container) return;
+
+        var bodyText = stripIssueBody(issue.body);
+        var updates = collectUpdates(issue, comments, false);
+        if (!bodyText && !updates.length) return;
+
+        var panel = document.createElement("div");
+        panel.className = "diwa-incident-detail";
+        panel.setAttribute("data-number", String(number));
+
+        var html = "";
+        if (bodyText) {
+          html +=
+            '<section class="diwa-incident-desc"><h3>Details</h3><div class="diwa-incident-body">' +
+            simpleMarkdown(bodyText) +
+            "</div></section>";
+        }
+        if (updates.length) {
+          html +=
+            '<section class="diwa-incident-updates"><h3>Updates</h3></section>';
+        }
+        panel.innerHTML = html;
+        if (updates.length) {
+          panel
+            .querySelector(".diwa-incident-updates")
+            .appendChild(renderTimeline(updates));
+        }
+
+        var insertAfter =
+          container.querySelector("dl") || container.querySelector("h2");
+        if (insertAfter && insertAfter.parentNode) {
+          insertAfter.parentNode.insertBefore(panel, insertAfter.nextSibling);
+        } else {
+          container.appendChild(panel);
+        }
+        hideUpptimeComments(panel);
+      })
+      .catch(function () {});
   }
 
   function serviceCards() {
@@ -850,13 +1056,49 @@
     document.body.classList.remove("diwa-ready");
   }
 
+  function beginDetailWatch() {
+    done = true;
+    pauseWatching();
+    document.body.classList.remove("diwa-ready");
+    document.body.classList.add("diwa-detail");
+    enhanceIncidentDetail();
+    if (detailTimer) clearInterval(detailTimer);
+    var tries = 0;
+    detailTimer = setInterval(function () {
+      tries += 1;
+      if (
+        !isIncidentPage() ||
+        document.querySelector(".diwa-incident-detail") ||
+        tries >= 20
+      ) {
+        clearInterval(detailTimer);
+        detailTimer = null;
+        return;
+      }
+      enhanceIncidentDetail();
+    }, 300);
+  }
+
+  function leaveDetail() {
+    document.body.classList.remove("diwa-detail");
+    if (detailTimer) {
+      clearInterval(detailTimer);
+      detailTimer = null;
+    }
+  }
+
   function onRouteChange() {
     var path = currentPath();
     if (path === lastPath) return;
     lastPath = path;
     if (isHome()) {
+      leaveDetail();
       beginHomeWatch();
+    } else if (isIncidentPage()) {
+      leaveHome();
+      beginDetailWatch();
     } else {
+      leaveDetail();
       leaveHome();
     }
   }
@@ -939,6 +1181,8 @@
     lastPath = currentPath();
     if (isHome()) {
       beginHomeWatch();
+    } else if (isIncidentPage()) {
+      beginDetailWatch();
     }
   }
 

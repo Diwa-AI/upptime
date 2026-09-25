@@ -9,20 +9,29 @@ assignees: ''
 Keep the `status` label and add `diwa-ai` and/or `diwa-api`.
 
 The title appears on the status page as-is. Example:
-`Investigating service degradation — Diwa AI and Diwa API`
+
+`Investigating service degradation — Diwa AI`
 
 The body is the first public update. Use this prefix:
 
 ```
-Investigating - We are aware of [impact]. We are investigating.
+Investigating - We are aware of slower page loads on Diwa AI. We are investigating.
 ```
 
 Later comments (newest shows first on https://status.diwa.ai):
 
 ```
-Identified - The root cause has been identified and a fix is being implemented.
+Identified - Elevated latency is limited to the web app. A fix is being implemented.
 Monitoring - A fix has been deployed. We are monitoring.
-Resolved - This incident has been resolved.
+Resolved - Response times are back to normal. This incident has been resolved.
 ```
 
 Close the issue after the Resolved comment.
+
+Filled example (copy and replace the bracketed parts):
+
+```
+Investigating service degradation — Diwa AI
+
+Investigating - We are aware of slower page loads on Diwa AI. We are investigating.
+```
