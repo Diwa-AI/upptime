@@ -408,10 +408,20 @@ body article.graph {
 }
 
 .uptime-tick {
+  position: relative;
   flex: 1;
-  min-width: 0;
+  min-width: 4px;
   border-radius: 1px;
-  cursor: default;
+  cursor: pointer;
+}
+
+.uptime-tick::after {
+  content: "";
+  position: absolute;
+  left: -3px;
+  right: -3px;
+  top: -10px;
+  bottom: -10px;
 }
 
 .uptime-tick.nodata {
@@ -542,50 +552,48 @@ body section > h2 {
   font-weight: 650;
 }
 
-body article.down.link:not(.down-active),
-body article.degraded.link:not(.down-active) {
-  background: var(--card-background-color);
-  border: 1px solid var(--card-border-color);
-  border-left-width: 1px;
-  border-radius: 12px;
-  box-shadow: var(--card-shadow);
+body main.container > h3,
+body section > h3 {
+  margin-top: 1.75rem;
+  margin-bottom: 0.35rem;
+  font-size: 1.05rem;
+  font-weight: 650;
   color: var(--body-text-color);
-  margin-top: 0.75rem;
+  text-transform: none;
+  letter-spacing: 0;
 }
 
-body article.down.link .f,
-body article.degraded.link .f {
-  align-items: flex-start;
-  gap: 0.75rem;
+body article.down.link:not(.down-active),
+body article.degraded.link:not(.down-active) {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  color: var(--body-text-color);
+  margin-top: 1.15rem;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+body article.down.link > .f,
+body article.degraded.link > .f {
+  display: none;
 }
 
 body article.down.link h4,
 body article.degraded.link h4 {
-  margin-bottom: 0.2rem;
+  margin-bottom: 0.55rem;
   font-weight: 650;
+  color: #f59e0b;
 }
 
-body article.down.link:not(.down-active) h4::after {
-  content: "Resolved";
-  display: inline-block;
-  margin-left: 0.6rem;
-  font-size: 0.68rem;
-  font-weight: 650;
-  vertical-align: middle;
-  padding: 0.22rem 0.55rem;
-  border-radius: 999px;
-  background: var(--tag-up-background-color);
-  color: #166534;
-}
-
+body article.down.link:not(.down-active) h4::after,
 body article.down-active h4::after {
   content: none;
 }
 
-body article.down.link .f.r a,
-body article.degraded.link .f.r a {
-  font-size: 0.8rem;
-  color: var(--muted-text-color);
+body article.down.link .f.r,
+body article.degraded.link .f.r {
+  display: none;
 }
 
 body article.down-active {
@@ -605,9 +613,9 @@ body .tag.open {
 
 .diwa-timeline {
   position: relative;
-  margin-top: 0.95rem;
-  padding: 0.15rem 0 0.1rem 1.15rem;
-  border-left: 2px solid var(--card-border-color);
+  margin-top: 0.15rem;
+  padding: 0;
+  border-left: none;
 }
 
 .diwa-timeline-item {
@@ -620,32 +628,21 @@ body .tag.open {
 }
 
 .diwa-timeline-item::before {
-  content: "";
-  position: absolute;
-  left: -1.15rem;
-  top: 0.35rem;
-  width: 8px;
-  height: 8px;
-  margin-left: -5px;
-  border-radius: 50%;
-  background: #94a3b8;
-}
-
-.diwa-timeline-item:last-child::before {
-  background: #22c55e;
-}
-
-.diwa-timeline-when {
-  margin: 0 0 0.2rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--muted-text-color);
+  content: none;
 }
 
 .diwa-timeline-body {
-  font-size: 0.86rem;
-  color: #4b5563;
+  margin: 0 0 0.15rem;
+  font-size: 0.95rem;
+  color: var(--body-text-color);
   line-height: 1.45;
+}
+
+.diwa-timeline-when {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: var(--muted-text-color);
 }
 
 .diwa-timeline-body code {
