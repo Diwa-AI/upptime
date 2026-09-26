@@ -6,16 +6,18 @@
     "slug": "diwa-ai",
     "status": "up",
     "uptime": "100.00%",
-    "uptimeDay": "100.00%",
+    "uptimeDay": "99.99%",
     "uptimeWeek": "100.00%",
     "uptimeMonth": "100.00%",
     "uptimeYear": "100.00%",
-    "time": 724,
-    "timeDay": 673,
-    "timeWeek": 678,
-    "timeMonth": 724,
-    "timeYear": 724,
-    "dailyMinutesDown": {}
+    "time": 730,
+    "timeDay": 804,
+    "timeWeek": 689,
+    "timeMonth": 730,
+    "timeYear": 730,
+    "dailyMinutesDown": {
+      "2026-09-25": 0
+    }
   },
   {
     "name": "Diwa API",
@@ -28,11 +30,11 @@
     "uptimeWeek": "100.00%",
     "uptimeMonth": "100.00%",
     "uptimeYear": "100.00%",
-    "time": 989,
-    "timeDay": 1121,
-    "timeWeek": 1021,
-    "timeMonth": 989,
-    "timeYear": 989,
+    "time": 973,
+    "timeDay": 786,
+    "timeWeek": 999,
+    "timeMonth": 973,
+    "timeYear": 973,
     "dailyMinutesDown": {}
   }
 ]
